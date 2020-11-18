@@ -24,6 +24,8 @@ Available as source code and pre-built binaries for most operating systems and a
 
 ## Features
 
+* **This fork of DNSCrypt-Proxy automatically dumps TLS Keys to a file name doh-keys.txt in the current working directory**
+
 * DNS traffic encryption and authentication. Supports DNS-over-HTTPS (DoH) using TLS 1.3, DNSCrypt and Anonymized DNS
 * Client IP addresses can be hidden using Tor, SOCKS proxies or Anonymized DNS relays
 * DNS query monitoring, with separate log files for regular and suspicious queries
