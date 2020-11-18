@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -52,7 +54,7 @@ func (handler localDoHHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		writer.WriteHeader(400)
 		return
 	}
-	response := proxy.processIncomingQuery("local_doh", proxy.mainProto, packet, &xClientAddr, nil, start)
+	response := proxy.processIncomingQuery("local_doh", "udp", packet, &xClientAddr, nil, start)
 	if len(response) == 0 {
 		writer.WriteHeader(500)
 		return
@@ -81,6 +83,12 @@ func (handler localDoHHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 }
 
 func (proxy *Proxy) localDoHListener(acceptPc *net.TCPListener) {
+	// Implementing a writer to write TLS keys to a file
+	f, err := os.OpenFile("doh-keys.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
 	defer acceptPc.Close()
 	if len(proxy.localDoHCertFile) == 0 || len(proxy.localDoHCertKeyFile) == 0 {
 		dlog.Fatal("A certificate and a key are required to start a local DoH service")
@@ -89,6 +97,9 @@ func (proxy *Proxy) localDoHListener(acceptPc *net.TCPListener) {
 		ReadTimeout:  proxy.timeout,
 		WriteTimeout: proxy.timeout,
 		Handler:      localDoHHandler{proxy: proxy},
+		TLSConfig: &tls.Config{
+			KeyLogWriter: f,
+		},
 	}
 	httpServer.SetKeepAlivesEnabled(true)
 	if err := httpServer.ServeTLS(acceptPc, proxy.localDoHCertFile, proxy.localDoHCertKeyFile); err != nil {
